@@ -82,10 +82,10 @@ def get_archive(archive_id, prov_doc):
     i = archive['institute'][0]
     i = unicode(i, errors='replace')
     prov_doc.agent('institute:'+i)
-    name = archive['archive_name'][0]
-    e = prov_doc.entity('archive:'+name,{'prov:label':archive['archive_name'][0],'prov:id':id, 'prov:type':'Collection'})
+    archive_ident = 'archive:'+ archive_id
+    e = prov_doc.entity(archive_ident,{'prov:label':archive['archive_name'][0],'prov:id':id, 'prov:type':'Collection'})
     prov_doc.wasAttributedTo(e, 'institute:'+i)
-    return 'archive:'+name
+    return archive_ident
 
 
 
@@ -151,8 +151,14 @@ def get_logpage(logpage_id, prov_doc):
     logpage_ident = 'logpage:' + logpage_id
     print(logpage_ident)
     prov_doc.entity(logpage_ident, {'prov:label':logpage_id,'prov:id':logpage_id, 'prov:type':'Logpage'})
-    logbook_ident = get_logbook(str(data['logbook_id'][0]), prov_doc)
-    prov_doc.hadMember(logbook_ident, logpage_ident)
+    print(data['logbook_id'][0])
+    if data['logbook_id'][0] is not None:
+        archive_ident = 'archive:'+ str(data['archive_id'][0])
+        prov_doc.hadMember(archive_ident, logpage_ident)
+    else:
+        logbook_ident = get_logbook(str(data['logbook_id'][0]), prov_doc)
+        prov_doc.hadMember(logbook_ident, logpage_ident)
+
     return logpage_id
 
 def get_source(source_id, prov_doc):
@@ -228,7 +234,7 @@ def get_plate_prov(plate_id,prov_doc):
         process_ident = get_process(str(process), prov_doc)
     
     # get logbook, pages
-    query = 'select * from APPLAUSE_DR2.plate_logpage where logpage_id = '+ plate_id
+    query = 'select * from APPLAUSE_DR2.plate_logpage where plate_id = '+ plate_id
     cli = get_client()
     run = submit_query(cli, query, queue='long')
     data = get_data(cli, run, username, password)
@@ -253,10 +259,11 @@ declare_namespaces(d1)
 try:
     # scan = get_entity('2462','scan', d1)
     id = '2180'
-    prov_type = 'plate'
+    prov_type = 'logpage'
     #plate_name = get_entity(id,prov_type, d1)
     #process_name = get_process('9804',d1)
-    plate_ident = get_plate_prov(id, d1)
+    logpage_name = get_logpage('10085',d1)
+    # plate_ident = get_plate_prov(id, d1)
 except ValueError:
     print('Entity type is not scan, plate, archive or lightcurve.')
 

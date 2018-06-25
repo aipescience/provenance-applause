@@ -1,2 +1,2 @@
-"row_id","logbook_id","archive_id","logbook_aid","logbook_num","logbook_title","logbook_type","logbook_notes","timestamp_insert","timestamp_update"
-"1","21","101","dr.2/notes/101_21","10","LB10","2","NULL","2016-02-17 12:28:22","2016-02-22 13:55:41"
+"row_id","logpage_id","logbook_id","archive_id","logpage_aid","logpage_type","page_num","logpage_order","filename","file_format","image_width","image_height","image_datetime","timestamp_insert","timestamp_update"
+"1","10085","NULL","101","dr.2/envelopes/101_10085","3","NULL","NULL","LA02426_cover.jpg","JPEG","1768","1847","NULL","2016-02-17 12:29:28","2016-02-22 13:55:41"

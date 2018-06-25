@@ -1,3 +1,6 @@
-/env
+/venv
 *.png
 *.xml
+/uws-client*
+/gaia-data-workshop*
+.vscode
