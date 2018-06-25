@@ -11,6 +11,11 @@ with open('plate-archive.org.json') as data_file:
         username, password = json.load(data_file).values()
 
 
+# check for double entries
+archives = []
+processes = []
+institutes = []
+
 def get_client():    
     url = 'https://www.plate-archive.org/uws/query'
     cli = client.Client(url, username, password)
@@ -19,7 +24,7 @@ def get_client():
 def submit_query(client, query, queue):
     parameters = {'query': query, 'queue': queue}
     job = client.new_job(parameters)
-    time.sleep(1)
+    time.sleep(2)
     run = client.run_job(job.job_id)
 
     return run
@@ -52,6 +57,8 @@ def declare_namespaces(prov_doc):
     prov_doc.add_namespace('logbook', 'https://www.plate-archive.org/applause/documentation/dr2/tables/logbook/')
     prov_doc.add_namespace('logpage', 'https://www.plate-archive.org/applause/documentation/dr2/tables/logpage/')
     prov_doc.add_namespace('source', 'https://www.plate-archive.org/applause/documentation/dr2/tables/source/')
+    prov_doc.add_namespace('lightcurve', 'https://www.plate-archive.org/applause/documentation/dr2/tables/lightcurve/')
+
 
 # get all the archives and institutes
 def get_all_archives(prov_doc):
@@ -73,18 +80,22 @@ def get_all_archives(prov_doc):
 
 
 def get_archive(archive_id, prov_doc):
-    query = 'select * from APPLAUSE_DR2.archive where archive_id = ' + archive_id
-    cli = get_client()
-    run = submit_query(cli, query, queue='long')
-    archive = get_data(cli, run, username, password)
-    print(archive)
-    # get institute name
-    i = archive['institute'][0]
-    i = unicode(i, errors='replace')
-    prov_doc.agent('institute:'+i)
-    archive_ident = 'archive:'+ archive_id
-    e = prov_doc.entity(archive_ident,{'prov:label':archive['archive_name'][0],'prov:id':id, 'prov:type':'Collection'})
-    prov_doc.wasAttributedTo(e, 'institute:'+i)
+    if archive_id in archives:
+        archive_ident = 'archive:'+ archive_id  
+    else:
+        query = 'select * from APPLAUSE_DR2.archive where archive_id = ' + archive_id
+        cli = get_client()
+        run = submit_query(cli, query, queue='long')
+        archive = get_data(cli, run, username, password)
+        print(archive)
+        # get institute name
+        i = archive['institute'][0]
+        i = unicode(i, errors='replace')
+        prov_doc.agent('institute:'+i)
+        archive_ident = 'archive:'+ archive_id
+        e = prov_doc.entity(archive_ident,{'prov:label':archive['archive_name'][0],'prov:id':id, 'prov:type':'Collection'})
+        prov_doc.wasAttributedTo(e, 'institute:'+i)
+        archives.append(archive_id)
     return archive_ident
 
 
@@ -110,6 +121,9 @@ def get_scan(scan_id, prov_doc):
     cli = get_client()
     run = submit_query(cli, query, queue='long')
     data = get_data(cli, run, username, password)
+    if data is None:
+        print('data is none')
+        return None
     print(data)
     scan_ident = 'scan:' + str(data['scan_id'][0])
     prov_doc.entity(scan_ident, {'prov:label':data['scan_id'][0],'prov:id':scan_id, 'prov:type':'Scan'})
@@ -152,7 +166,7 @@ def get_logpage(logpage_id, prov_doc):
     print(logpage_ident)
     prov_doc.entity(logpage_ident, {'prov:label':logpage_id,'prov:id':logpage_id, 'prov:type':'Logpage'})
     print(data['logbook_id'][0])
-    if data['logbook_id'][0] is not None:
+    if pandas.isnull(data['logbook_id'][0]):
         archive_ident = 'archive:'+ str(data['archive_id'][0])
         prov_doc.hadMember(archive_ident, logpage_ident)
     else:
@@ -170,10 +184,10 @@ def get_source(source_id, prov_doc):
     source_ident = 'source:'+ source_id
     print(source_ident)
     prov_doc.entity(source_ident, {'prov:label':source_id,'prov:id':source_id, 'prov:type':'Source'})
-
     process_ident = get_process(str(data['process_id'][0]), prov_doc)
     plate_ident = get_plate(str(data['plate_id'][0]), prov_doc)
     prov_doc.wasDerivedFrom(source_ident, plate_ident)
+    prov_doc.wasGeneratedBy(process_ident, source_ident)
 
     return source_ident
     
@@ -202,9 +216,18 @@ def get_lightcurve(ucac4_id, prov_doc):
     query = 'select * from APPLAUSE_DR2.lightcurve where ucac4_id like \'' + ucac4_id +'\''
     cli = get_client()
     run = submit_query(cli, query, queue='long')
-    lightcurve = get_data(cli, run, username, password)
-    print(lightcurve)
-    return 'lightcurve:' + ucac4_id
+    data = get_data(cli, run, username, password)
+    print(data)
+    lightcurve_ident = 'lighturve:' + '614' # ucac4_id
+    print(lightcurve_ident)
+    prov_doc.entity('lightcurve:614', {'prov:label':ucac4_id, 'prov:id':ucac4_id,'prov:type':'Lightcurve'})
+    for source in data['source_id']:
+        try:
+            source_ident = get_source(str(source), prov_doc)
+            prov_doc.hadMember('lightcurve:614-', source_ident)
+        except TypeError:
+            print('Source %s could not be retrieved, proceeding...' %  str(source))
+    return lightcurve_ident
 
 
 def get_entity(id, entity_type, prov_doc):
@@ -225,7 +248,7 @@ def get_plate_prov(plate_id,prov_doc):
     #get the plate entity, archives and institutes
     plate_ident = get_plate(plate_id, prov_doc)
 
-    # get the processes and scans
+    # get the processes
     query = 'select * from APPLAUSE_DR2.process where plate_id = '+ plate_id
     cli = get_client()
     run = submit_query(cli, query, queue='long')
@@ -247,25 +270,22 @@ def get_plate_prov(plate_id,prov_doc):
 # Create a new provenance document
 d1 = ProvDocument()
 declare_namespaces(d1)
-
-
-
-# get_archives(d1)
 # get V468Cyg
-# get_lightcurve('614-089373', d1)
+# 
 # get_plate
-
 # process = get_process('2180', d1)
 try:
     # scan = get_entity('2462','scan', d1)
     id = '2180'
-    prov_type = 'logpage'
-    #plate_name = get_entity(id,prov_type, d1)
-    #process_name = get_process('9804',d1)
-    logpage_name = get_logpage('10085',d1)
+    prov_type = 'lightcurve'
+    # plate_name = get_entity(id,prov_type, d1)
+    # process_name = get_process('9804',d1)
+    # logpage_name = get_logpage('10085',d1)
+    # source_id = get_source('40000001', d1)
     # plate_ident = get_plate_prov(id, d1)
-except ValueError:
-    print('Entity type is not scan, plate, archive or lightcurve.')
+    id = get_lightcurve('614-089373', d1)
+except TypeError:
+    print('the job is still executing...')
 
 
 

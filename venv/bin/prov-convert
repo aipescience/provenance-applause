@@ -1,4 +1,4 @@
-#!/home/galkin/code/provenance-applause/venv/bin/python2.7
+#!/home/galkin/code/applause_provenance/venv/bin/python2.7
 # encoding: utf-8
 """
 convert -- Convert PROV-JSON to RDF, PROV-N, PROV-XML, or graphical formats (SVG, PDF, PNG)

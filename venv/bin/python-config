@@ -1,4 +1,4 @@
-#!/home/galkin/code/provenance-applause/venv/bin/python
+#!/home/galkin/code/applause_provenance/venv/bin/python
 
 import sys
 import getopt

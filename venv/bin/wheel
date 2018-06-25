@@ -1,4 +1,4 @@
-#!/home/galkin/code/provenance-applause/venv/bin/python2.7
+#!/home/galkin/code/applause_provenance/venv/bin/python2.7
 
 # -*- coding: utf-8 -*-
 import re
