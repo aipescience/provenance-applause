@@ -1,0 +1,3 @@
+[console_scripts]
+uws = uws.cli.main:main
+
