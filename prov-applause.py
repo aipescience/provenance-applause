@@ -271,7 +271,6 @@ def get_plate_prov(plate_id,prov_doc):
 d1 = ProvDocument()
 declare_namespaces(d1)
 # get V468Cyg
-# 
 # get_plate
 # process = get_process('2180', d1)
 try:
