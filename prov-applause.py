@@ -4,6 +4,7 @@ import json
 import pandas
 import prov
 import uws.UWS.client as client
+import uws.UWS.errors as uwserror
 from prov.model import ProvDocument
 from prov.dot import prov_to_dot
 
@@ -39,7 +40,13 @@ def get_data(client, run, username, password, wait='30',
         client.connection.download_file(fileurl, username, password,
                                         file_name=filename)
         data = pandas.read_csv(filename)
-        success = client.delete_job(job.job_id)
+        
+        # delete the jobs afterwords
+        try:
+            success = client.delete_job(job.job_id)
+        except uwserror.UWSError:
+            print('Cannot delete the job')
+
         print 'Job is %s' % (job.phase[0])
         return data
     else:
